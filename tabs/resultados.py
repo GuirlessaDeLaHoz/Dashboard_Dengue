@@ -36,7 +36,7 @@ TEMPLATE = "plotly_white"
 # CARGA DE DATOS
 # ======================================================
 
-df = pd.read_csv("/home/guirlessa/Dashboard_Dengue/data/df_full.csv")
+df = pd.read_csv("data/df_full.csv")
 
 df["fecha_inicio"] = pd.to_datetime(df["fecha_inicio"])
 

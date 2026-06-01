@@ -1,0 +1,2 @@
+seed,window_size,hidden_dim,learning_rate,batch_size
+42,16,128,0.0008328532410968651,16

@@ -1,2 +1,0 @@
-seed,window_size,learning_rate,batch_size,hidden_channels,spatial_channels,num_blocks,kernel_size,dropout
-2024,4,0.0037827239133311065,32,64,16,2,7,0.30000000000000004

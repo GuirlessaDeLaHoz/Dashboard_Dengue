@@ -622,7 +622,7 @@ def update_dashboard(year, departamento):
     )
 
     mapa = gpd.read_file(
-        "/home/guirlessa/Dashboard_Dengue/data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
+        "data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
     )
 
     mapa = mapa.merge(

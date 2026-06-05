@@ -1,2 +1,0 @@
-seed,window_size,learning_rate,batch_size,hidden_size,num_layers,kernel_size,dropout
-123,16,0.0012460261167843497,32,32,3,3,0.4

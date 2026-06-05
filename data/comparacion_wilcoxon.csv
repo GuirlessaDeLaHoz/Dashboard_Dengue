@@ -1,0 +1,7 @@
+Modelo 1,Modelo 2,Estadístico,p-value,Significativo (p<0.05)
+LSTM,ConvLSTM,0.0,0.00390625,True
+LSTM,Transformer,0.0,0.00390625,True
+LSTM,STGNN,21.0,0.91015625,False
+ConvLSTM,Transformer,11.0,0.203125,False
+ConvLSTM,STGNN,0.0,0.00390625,True
+Transformer,STGNN,0.0,0.00390625,True

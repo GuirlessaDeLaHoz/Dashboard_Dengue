@@ -1,156 +1,232 @@
-# ======================================================
-# PESTAÑA DE RESULTADOS LSTM — DASHBOARD DENGUE
-# ======================================================
-
 import pandas as pd
-import os
+import numpy as np
+
 from dash import html, dcc, dash_table
+from dash.dependencies import Input, Output
+
 import dash_bootstrap_components as dbc
+
 import plotly.express as px
+import plotly.graph_objects as go
 
-# ======================================================
-# CONFIGURACIÓN DE RUTAS
-# ======================================================
+BASE_DATA = "data"
 
-BASE_RESULTS = "/home/guirlessa/Dashboard_Dengue/data/"
-HISTORY_DIR = os.path.join(BASE_RESULTS, "history")
-METRICS_DIR = os.path.join(BASE_RESULTS, "metrics")
-PREDICTIONS_DIR = os.path.join(BASE_RESULTS, "predictions")
+tabla_metricas = pd.read_csv(
+    f"{BASE_DATA}/comparacion_metricas_modelos.csv"
+)
 
-# ======================================================
-# COORDENADAS DE DEPARTAMENTOS (sin shapefile)
-# ======================================================
+print(tabla_metricas.columns.tolist())
 
-DEPT_COORDS = {
-    "Amazonas": {"lat": -3.7, "lon": -70.0},
-    "Antioquia": {"lat": 7.0, "lon": -75.5},
-    "Arauca": {"lat": 6.8, "lon": -70.8},
-    "Atlántico": {"lat": 10.8, "lon": -75.0},
-    "Bolívar": {"lat": 9.0, "lon": -74.0},
-    "Boyacá": {"lat": 5.5, "lon": -73.3},
-    "Caldas": {"lat": 5.0, "lon": -75.5},
-    "Caquetá": {"lat": 0.8, "lon": -74.0},
-    "Casanare": {"lat": 5.8, "lon": -71.8},
-    "Cauca": {"lat": 2.5, "lon": -76.6},
-    "Cesar": {"lat": 9.8, "lon": -73.5},
-    "Chocó": {"lat": 5.7, "lon": -77.0},
-    "Córdoba": {"lat": 8.3, "lon": -75.8},
-    "Cundinamarca": {"lat": 4.8, "lon": -74.3},
-    "Guainía": {"lat": 2.5, "lon": -68.9},
-    "Guaviare": {"lat": 2.0, "lon": -72.8},
-    "Huila": {"lat": 2.8, "lon": -75.3},
-    "La Guajira": {"lat": 11.0, "lon": -72.9},
-    "Magdalena": {"lat": 10.0, "lon": -74.2},
-    "Meta": {"lat": 3.5, "lon": -73.5},
-    "Nariño": {"lat": 1.2, "lon": -77.3},
-    "Norte de Santander": {"lat": 8.0, "lon": -72.5},
-    "Putumayo": {"lat": 0.5, "lon": -76.0},
-    "Quindío": {"lat": 4.5, "lon": -75.7},
-    "Risaralda": {"lat": 5.0, "lon": -75.8},
-    "Santander": {"lat": 7.0, "lon": -73.0},
-    "Sucre": {"lat": 9.0, "lon": -75.0},
-    "Tolima": {"lat": 4.0, "lon": -75.2},
-    "Valle del Cauca": {"lat": 3.5, "lon": -76.5},
-    "Vaupés": {"lat": 0.5, "lon": -70.8},
-    "Vichada": {"lat": 5.0, "lon": -68.0}
-}
+tabla_paper = pd.read_csv(
+    f"{BASE_DATA}/tabla_paper.csv"
+)
 
-# ======================================================
-# FUNCIÓN DE CARGA DE DATOS
-# ======================================================
+matriz_p = pd.read_csv(
+    f"{BASE_DATA}/matriz_pvalues_wilcoxon.csv",
+    index_col=0
+)
 
-def safe_read(path, empty_cols=None):
-    if os.path.exists(path):
-        return pd.read_csv(path)
-    else:
-        print(f"⚠️ Archivo no encontrado: {path}")
-        return pd.DataFrame(columns=empty_cols if empty_cols else [])
+wilcoxon_df = pd.read_csv(
+    f"{BASE_DATA}/comparacion_wilcoxon.csv"
+)
 
-def cargar_datos_lstm():
-    global_metrics = safe_read(os.path.join(METRICS_DIR, "global_metrics.csv"))
+best_rmse = tabla_metricas.loc[
+    tabla_metricas["RMSE Mean"].idxmin()
+]
 
-    history_files = [f for f in os.listdir(HISTORY_DIR) if f.endswith(".csv")]
-    history_dfs = []
-    for file in history_files:
-        df = pd.read_csv(os.path.join(HISTORY_DIR, file))
-        df["archivo"] = file
-        history_dfs.append(df)
-    history_df = pd.concat(history_dfs, ignore_index=True) if history_dfs else pd.DataFrame()
+best_mae = tabla_metricas.loc[
+    tabla_metricas["MAE Mean"].idxmin()
+]
 
-    prediction_files = [f for f in os.listdir(PREDICTIONS_DIR) if f.endswith(".csv")]
-    prediction_dfs = []
-    for file in prediction_files:
-        df = pd.read_csv(os.path.join(PREDICTIONS_DIR, file))
-        df["archivo"] = file
-        prediction_dfs.append(df)
-    predictions_df = pd.concat(prediction_dfs, ignore_index=True) if prediction_dfs else pd.DataFrame()
+best_r2 = tabla_metricas.loc[
+    tabla_metricas["R² Mean"].idxmax()
+]
 
-    return global_metrics, history_df, predictions_df
+def fig_rmse():
 
-# ======================================================
-# CARGA INICIAL
-# ======================================================
+    return px.bar(
+        tabla_metricas,
+        x="Modelo",
+        y="RMSE Mean",
+        error_y="RMSE Std",
+        title="Comparación RMSE"
+    )
+    
+def fig_mae():
 
-global_metrics, history_df, predictions_df = cargar_datos_lstm()
+    return px.bar(
+        tabla_metricas,
+        x="Modelo",
+        y="MAE Mean",
+        error_y="MAE Std",
+        title="Comparación MAE"
+    )
+    
+def fig_r2():
 
-# ======================================================
-# MAPA DE VALORES REALES VS PREDICHOS
-# ======================================================
-
-def crear_mapa_predicciones(predictions_df):
-    if predictions_df.empty:
-        return px.scatter_mapbox(title="No hay datos de predicciones disponibles")
-
-    resumen = predictions_df.groupby("departamento")[["y_true", "y_pred"]].mean().reset_index()
-    resumen["lat"] = resumen["departamento"].map(lambda d: DEPT_COORDS.get(d, {}).get("lat"))
-    resumen["lon"] = resumen["departamento"].map(lambda d: DEPT_COORDS.get(d, {}).get("lon"))
-    resumen["error"] = resumen["y_true"] - resumen["y_pred"]
-
-    fig = px.scatter_mapbox(
-        resumen,
-        lat="lat",
-        lon="lon",
-        hover_name="departamento",
-        hover_data={"y_true": True, "y_pred": True, "error": True},
-        color="error",
-        color_continuous_scale="RdBu",
-        size="y_true",
-        title="Mapa de Valores Reales vs Predichos (Error = y_true - y_pred)",
-        zoom=4,
-        center={"lat": 4.5, "lon": -74.0},
-        height=600
+    return px.bar(
+        tabla_metricas,
+        x="Modelo",
+        y="R² Mean",
+        error_y="R² Std",
+        title="Comparación R²"
     )
 
-    fig.update_layout(mapbox_style="carto-positron", margin={"r":0,"t":50,"l":0,"b":0})
-    return fig
+def fig_wilcoxon():
 
-# ======================================================
-# LAYOUT DE LA PESTAÑA
-# ======================================================
+    return px.imshow(
+        matriz_p,
+        text_auto=".4f",
+        color_continuous_scale="RdYlGn_r",
+        title="Matriz de p-values (Wilcoxon)"
+    )
+    
+ranking = tabla_metricas.copy()
+
+ranking["rank_rmse"] = ranking[
+    "RMSE Mean"
+].rank()
+
+ranking["rank_mae"] = ranking[
+    "MAE Mean"
+].rank()
+
+ranking["rank_r2"] = ranking[
+    "R² Mean"
+].rank(
+    ascending=False
+)
+
+ranking["TOTAL"] = (
+    ranking["rank_rmse"]
+    + ranking["rank_mae"]
+    + ranking["rank_r2"]
+)
+
+ranking = ranking.sort_values(
+    "TOTAL"
+)
+
+def fig_ranking():
+
+    return px.bar(
+        ranking,
+        x="Modelo",
+        y="TOTAL",
+        title="Ranking Global"
+    )
+    
+    html.Hr(),
+
+html.H2(
+    "Comparación de Modelos",
+    style={
+        "textAlign":"center",
+        "marginTop":"40px"
+    }
+),
 
 def layout():
+
     return dbc.Container([
-        html.H2("Resultados del Modelo LSTM", style={"color": "#0B3C5D", "fontWeight": "bold"}),
+
         html.Hr(),
 
-        html.H4("Métricas Globales", style={"marginTop": "20px"}),
-        dash_table.DataTable(
-            data=global_metrics.to_dict("records"),
-            columns=[{"name": i, "id": i} for i in global_metrics.columns],
-            style_table={"overflowX": "auto"},
-            style_cell={"textAlign": "center", "padding": "5px"},
-            page_size=10
+        html.H2(
+            "Comparación de Modelos",
+            style={
+                "textAlign": "center",
+                "marginTop": "40px"
+            }
         ),
 
-        html.H4("Historial de Entrenamiento por Seed y Año", style={"marginTop": "40px"}),
+        dbc.Row([
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H6("Mejor RMSE"),
+                        html.H4(best_rmse["Modelo"])
+                    ])
+                ])
+            ),
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H6("Mejor MAE"),
+                        html.H4(best_mae["Modelo"])
+                    ])
+                ])
+            ),
+
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H6("Mejor R²"),
+                        html.H4(best_r2["Modelo"])
+                    ])
+                ])
+            )
+
+        ]),
+
+        html.Br(),
+
+        html.H4("Tabla Comparativa"),
+
         dash_table.DataTable(
-            data=history_df.to_dict("records"),
-            columns=[{"name": i, "id": i} for i in history_df.columns],
-            style_table={"overflowX": "auto"},
-            style_cell={"textAlign": "center", "padding": "5px"},
-            page_size=10
+            data=tabla_paper.to_dict("records"),
+            columns=[
+                {"name": i, "id": i}
+                for i in tabla_paper.columns
+            ],
+            style_table={
+                "overflowX": "auto"
+            },
+            style_cell={
+                "textAlign": "center"
+            }
         ),
 
-        html.H4("Mapa de Valores Reales vs Predichos", style={"marginTop": "40px"}),
-        dcc.Graph(figure=crear_mapa_predicciones(predictions_df))
+        html.Br(),
+
+        dcc.Graph(
+            figure=fig_rmse()
+        ),
+
+        dcc.Graph(
+            figure=fig_mae()
+        ),
+
+        dcc.Graph(
+            figure=fig_r2()
+        ),
+
+        dcc.Graph(
+            figure=fig_ranking()
+        ),
+
+        dcc.Graph(
+            figure=fig_wilcoxon()
+        ),
+
+        html.H4(
+            "Pruebas de Wilcoxon"
+        ),
+
+        dash_table.DataTable(
+            data=wilcoxon_df.to_dict("records"),
+            columns=[
+                {"name": i, "id": i}
+                for i in wilcoxon_df.columns
+            ],
+            style_table={
+                "overflowX": "auto"
+            },
+            style_cell={
+                "textAlign": "center"
+            }
+        )
+
     ], fluid=True)

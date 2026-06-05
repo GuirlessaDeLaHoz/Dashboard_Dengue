@@ -1,13 +1,13 @@
 from dash import html, dcc, Input, Output, callback # type: ignore[import]
 try:
-    import dash_bootstrap_components as dbc  # type: ignore[import]
+    import dash_bootstrap_components as dbc  
 except ImportError:
     dbc = None
-import pandas as pd # type: ignore[import]
-import plotly.express as px  # type: ignore[import]
-import plotly.graph_objects as go  # type: ignore[import]
-import plotly.subplots  # type: ignore[import]
-import geopandas as gpd # type: ignore[import]
+import pandas as pd 
+import plotly.express as px  
+import plotly.graph_objects as go  
+import plotly.subplots  
+import geopandas as gpd 
 
 # ======================================================
 # PALETA GLOBAL (AZULES + GRISES)
@@ -78,19 +78,34 @@ def layout():
         dbc.Row([
 
             dbc.Col([
-                html.Label("Selecciona Año"),
 
-                dcc.Dropdown(
-                    id="eda-year-dropdown",
-                    options=[
-                        {"label": str(y), "value": y}
-                        for y in sorted(df["ano"].unique())
+                html.Label("Periodo de análisis"),
+
+                dcc.RangeSlider(
+                    id="eda-year-range",
+
+                    min=int(df["ano"].min()),
+                    max=int(df["ano"].max()),
+
+                    value=[
+                        int(df["ano"].min()),
+                        int(df["ano"].max())
                     ],
-                    value=None,
-                    placeholder="Todos los años",
-                    clearable=True
+
+                    marks={
+                        int(y): str(y)
+                        for y in sorted(df["ano"].unique())
+                    },
+
+                    step=1,
+
+                    tooltip={
+                        "placement": "bottom",
+                        "always_visible": True
+                    }
                 )
-            ], width=3),
+
+            ], width=5),
 
             dbc.Col([
                 html.Label("Selecciona Departamento"),
@@ -439,15 +454,21 @@ def layout():
     Output("eda-heatmap", "figure"),
     Output("eda-mapa-incidencia", "figure"),
     Output("eda-ranking-incidencia", "figure"),
-    Input("eda-year-dropdown", "value"),
+    Input("eda-year-range", "value"),
     Input("eda-depto-dropdown", "value")
 )
-def update_dashboard(year, departamento):
+def update_dashboard(year_range, departamento):
 
     df_filtered = df.copy()
 
-    if year is not None:
-        df_filtered = df_filtered[df_filtered["ano"] == year]
+    if year_range is not None:
+        start_year, end_year = year_range
+
+        df_filtered = df_filtered[
+            (df_filtered["ano"] >= start_year)
+            &
+            (df_filtered["ano"] <= end_year)
+        ]
 
     df_filtered_depto = df_filtered.copy()
 
@@ -463,15 +484,12 @@ def update_dashboard(year, departamento):
             df_depto["departamento"] == departamento
         ]
 
-    label = (
-        "2012–2024"
-        if year is None and departamento is None
-        else str(year)
-        if year is not None and departamento is None
-        else f"{departamento} (2012–2024)"
-        if year is None
-        else f"{departamento} ({year})"
-    )
+    periodo = f"{start_year}-{end_year}"
+
+    if departamento is None:
+        label = periodo
+    else:
+        label = f"{departamento} ({periodo})"
 
     # ======================================================
     # MÉTRICAS
@@ -625,6 +643,8 @@ def update_dashboard(year, departamento):
         "data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
     )
 
+    print(mapa.memory_usage(deep=True).sum()/1024**2)
+    print(len(mapa))
     mapa = mapa.merge(
         tabla_global,
         left_on="dpto_cnmbr",
@@ -686,18 +706,22 @@ def update_dashboard(year, departamento):
 @callback(
     Output("eda-serie-incidencia-covariable", "figure"),
     Input("eda-covariable-dropdown", "value"),
-    Input("eda-year-dropdown", "value"),
+    Input("eda-year-range", "value"),
     Input("eda-depto-dropdown", "value")
 )
-def update_incidencia_covariable(covariable, year, departamento):
+def update_incidencia_covariable(covariable, year_range, departamento):
 
     df_filtered = df.copy()
 
     # ======================================================
     # FILTROS
     # ======================================================
-    if year is not None:
-        df_filtered = df_filtered[df_filtered["ano"] == year]
+    if year_range is not None:
+        start_year, end_year = year_range
+        df_filtered = df_filtered[
+            (df_filtered["ano"] >= start_year) &
+            (df_filtered["ano"] <= end_year)
+        ]
 
     if departamento is not None:
         df_filtered = df_filtered[

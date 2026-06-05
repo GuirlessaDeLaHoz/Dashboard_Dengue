@@ -1,0 +1,2 @@
+seed,window_size,learning_rate,batch_size,dropout,d_model,n_heads,n_layers,dim_ff,max_lag
+2024,12,0.0005053090140970422,32,0.2,128,2,3,128,6

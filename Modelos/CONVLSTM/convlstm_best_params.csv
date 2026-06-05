@@ -1,0 +1,4 @@
+seed,window_size,learning_rate,batch_size,hidden_size,num_layers,kernel_size,dropout
+42,4,0.0006123803492955895,16,32,1,3,0.4
+123,16,0.0004199338374868215,32,32,1,3,0.2
+2024,12,0.004472624616062525,32,64,1,3,0.4

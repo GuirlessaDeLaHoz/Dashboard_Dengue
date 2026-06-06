@@ -41,8 +41,21 @@ TEMPLATE = "plotly_white"
 # ======================================================
 
 df = pd.read_csv("data/df_full.csv")
-
 df["fecha_inicio"] = pd.to_datetime(df["fecha_inicio"])
+
+# Cargar shapefile UNA SOLA VEZ y simplificar geometría
+_mapa_base = gpd.read_file(
+    "data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
+)
+_mapa_base = gpd.GeoDataFrame(
+    _mapa_base[["dpto_cnmbr", "geometry"]].copy(),
+    geometry="geometry"
+)
+_mapa_base["geometry"] = _mapa_base["geometry"].simplify(
+    tolerance=0.01,   # reduce puntos de la geometría ~80%
+    preserve_topology=True
+)
+_GEOJSON = json.loads(_mapa_base.to_json())  # serializar una sola vez
 
 # ======================================================
 # LAYOUT
@@ -636,10 +649,6 @@ def update_dashboard(year_range, departamento):
         df_filtered.groupby("departamento")["incidencia"]
         .mean()
         .reset_index()
-    )
-
-    mapa = gpd.read_file(
-        "data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
     )
 
     mapa = mapa.merge(

@@ -651,25 +651,19 @@ def update_dashboard(year_range, departamento):
         .reset_index()
     )
 
-    mapa = mapa.merge(
+# DESPUÉS (correcto)
+    mapa_plot = _mapa_base[["dpto_cnmbr"]].copy()
+    mapa_plot = mapa_plot.merge(
         tabla_global,
         left_on="dpto_cnmbr",
         right_on="departamento",
         how="left"
     )
-
-    mapa = gpd.GeoDataFrame(
-        mapa[["dpto_cnmbr", "incidencia", "geometry"]].copy(),
-        geometry="geometry"
-    )
-
-    mapa["incidencia"] = mapa["incidencia"].astype(float).fillna(0.0)
-
-    geojson_dict = json.loads(mapa.to_json())
+    mapa_plot["incidencia"] = mapa_plot["incidencia"].astype(float).fillna(0.0)
 
     fig_mapa = px.choropleth(
-        mapa,
-        geojson=geojson_dict,
+        mapa_plot,           # ← mapa_plot, no mapa
+        geojson=_GEOJSON,
         featureidkey="properties.dpto_cnmbr",
         locations="dpto_cnmbr",
         color="incidencia",

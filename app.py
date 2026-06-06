@@ -1,14 +1,12 @@
 from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
 
-from tabs import (
-    prediccion,
-    resultados
-)
+from tabs import resultados
 from tabs import contexto
 from tabs import introduccion
 from tabs import objetivos
 from tabs import problema
+
 
 app = Dash(
     __name__,

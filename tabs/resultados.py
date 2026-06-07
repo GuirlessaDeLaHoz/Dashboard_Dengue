@@ -36,14 +36,21 @@ COLORES_COV = ["#E74C3C", "#2ECC71", "#F39C12", "#9B59B6"]
 
 TEMPLATE = "plotly_white"
 
+DESC_STYLE = {
+    "color": "#6C757D",
+    "fontSize": "0.85rem",
+    "marginTop": "6px",
+    "fontStyle": "italic",
+    "lineHeight": "1.4"
+}
+
 # ======================================================
 # CARGA DE DATOS
 # ======================================================
-
 df = pd.read_csv("data/df_full.csv")
 df["fecha_inicio"] = pd.to_datetime(df["fecha_inicio"])
 
-# Cargar shapefile UNA SOLA VEZ y simplificar geometría
+# Cargar shapefile UNA SOLA VEZ y simplificar geometria
 _mapa_base = gpd.read_file(
     "data/MGN_ADM_DPTO_POLITICO/MGN_ADM_DPTO_POLITICO_limpio.shp"
 )
@@ -52,10 +59,11 @@ _mapa_base = gpd.GeoDataFrame(
     geometry="geometry"
 )
 _mapa_base["geometry"] = _mapa_base["geometry"].simplify(
-    tolerance=0.01,   # reduce puntos de la geometría ~80%
+    tolerance=0.01,
     preserve_topology=True
 )
-_GEOJSON = json.loads(_mapa_base.to_json())  # serializar una sola vez
+_GEOJSON = json.loads(_mapa_base.to_json())
+
 
 # ======================================================
 # LAYOUT
@@ -68,24 +76,18 @@ def layout():
 
         html.H2(
             "Resultados del Proyecto",
-            style={
-                "color": "#0B3C5D",
-                "fontWeight": "bold"
-            }
+            style={"color": "#0B3C5D", "fontWeight": "bold"}
         ),
 
         html.Hr(),
 
         html.H3(
             "Exploratory Data Analysis (EDA)",
-            style={
-                "color": "#0B3C5D",
-                "fontWeight": "bold"
-            }
+            style={"color": "#0B3C5D", "fontWeight": "bold"}
         ),
 
         html.P(
-            "Análisis exploratorio de la incidencia de dengue en Colombia (2012-2024).",
+            "Analisis exploratorio de la incidencia de dengue en Colombia (2012-2024).",
             style={"color": "#6C757D"}
         ),
 
@@ -95,38 +97,20 @@ def layout():
         dbc.Row([
 
             dbc.Col([
-
-                html.Label("Periodo de análisis"),
-
+                html.Label("Periodo de analisis"),
                 dcc.RangeSlider(
                     id="eda-year-range",
-
                     min=int(df["ano"].min()),
                     max=int(df["ano"].max()),
-
-                    value=[
-                        int(df["ano"].min()),
-                        int(df["ano"].max())
-                    ],
-
-                    marks={
-                        int(y): str(y)
-                        for y in sorted(df["ano"].unique())
-                    },
-
+                    value=[int(df["ano"].min()), int(df["ano"].max())],
+                    marks={int(y): str(y) for y in sorted(df["ano"].unique())},
                     step=1,
-
-                    tooltip={
-                        "placement": "bottom",
-                        "always_visible": True
-                    }
+                    tooltip={"placement": "bottom", "always_visible": True}
                 )
-
             ], width=5),
 
             dbc.Col([
                 html.Label("Selecciona Departamento"),
-
                 dcc.Dropdown(
                     id="eda-depto-dropdown",
                     options=[
@@ -147,7 +131,7 @@ def layout():
         dbc.Tabs([
 
             # ======================================================
-            # TAB 1
+            # TAB 1 - CARACTERIZACION
             # ======================================================
             dbc.Tab(
                 label="Caracterizacion de la Poblacion",
@@ -157,35 +141,25 @@ def layout():
                     html.Br(),
 
                     dbc.Row([
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
                                     html.H6("Casos acumulados"),
-
                                     html.H2(
                                         id="eda-total-casos",
-                                        style={
-                                            "color": "#1F77B4",
-                                            "fontWeight": "bold"
-                                        }
+                                        style={"color": "#1F77B4", "fontWeight": "bold"}
                                     )
                                 ])
                             ], className="shadow-sm border-0"),
                             width=4
                         ),
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
                                     html.H6("Incidencia acumulada (x100k)"),
-
                                     html.H2(
                                         id="eda-incidencia",
-                                        style={
-                                            "color": "#4C78A8",
-                                            "fontWeight": "bold"
-                                        }
+                                        style={"color": "#4C78A8", "fontWeight": "bold"}
                                     )
                                 ])
                             ], className="shadow-sm border-0"),
@@ -194,15 +168,24 @@ def layout():
                     ], className="mb-5"),
 
                     dbc.Row([
-                        dbc.Col(dcc.Graph(id="eda-pie-sexo"), width=4),
-                        dbc.Col(dcc.Graph(id="eda-bar-edad"), width=4),
-                        dbc.Col(dcc.Graph(id="eda-pie-zona"), width=4)
+                        dbc.Col([
+                            dcc.Graph(id="eda-pie-sexo"),
+                            html.Div(id="eda-desc-sexo", style=DESC_STYLE)
+                        ], width=4),
+                        dbc.Col([
+                            dcc.Graph(id="eda-bar-edad"),
+                            html.Div(id="eda-desc-edad", style=DESC_STYLE)
+                        ], width=4),
+                        dbc.Col([
+                            dcc.Graph(id="eda-pie-zona"),
+                            html.Div(id="eda-desc-zona", style=DESC_STYLE)
+                        ], width=4)
                     ], className="mb-5")
                 ]
             ),
 
             # ======================================================
-            # TAB 2
+            # TAB 2 - DISTRIBUCION
             # ======================================================
             dbc.Tab(
                 label="Distribucion de la Incidencia",
@@ -212,21 +195,27 @@ def layout():
                     html.Br(),
 
                     dbc.Row([
-                        dbc.Col(dcc.Graph(id="eda-hist-incidencia"), width=6),
-                        dbc.Col(dcc.Graph(id="eda-box-incidencia"), width=6)
+                        dbc.Col([
+                            dcc.Graph(id="eda-hist-incidencia"),
+                            html.Div(id="eda-desc-hist", style=DESC_STYLE)
+                        ], width=6),
+                        dbc.Col([
+                            dcc.Graph(id="eda-box-incidencia"),
+                            html.Div(id="eda-desc-box", style=DESC_STYLE)
+                        ], width=6)
                     ], className="mb-5"),
 
                     dbc.Row([
-                        dbc.Col(
+                        dbc.Col([
                             dcc.Graph(id="eda-bar-incidencia-depto"),
-                            width=12
-                        )
+                            html.Div(id="eda-desc-bar-depto", style=DESC_STYLE)
+                        ], width=12)
                     ], className="mb-5")
                 ]
             ),
 
             # ======================================================
-            # TAB 3
+            # TAB 3 - ESPACIO-TEMPORAL
             # ======================================================
             dbc.Tab(
                 label="Analisis Espacio-Temporal",
@@ -235,205 +224,114 @@ def layout():
 
                     html.Br(),
 
-                    # ======================================================
-                    # INDICADORES
-                    # ======================================================
                     dbc.Row([
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
-                                    html.H6(
-                                        "Periodo analizado",
-                                        style={"color": "#0B3C5D"}
-                                    ),
-
-                                    html.H4(
-                                        "2012-2024",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "color": "#1E3A8A"
-                                        }
-                                    ),
-
-                                    html.P(
-                                        "13 anos · ~676 semanas",
-                                        style={"color": "#6C757D"}
-                                    )
+                                    html.H6("Periodo analizado", style={"color": "#0B3C5D"}),
+                                    html.H4("2012-2024", style={"fontWeight": "bold", "color": "#1E3A8A"}),
+                                    html.P("13 anos · ~676 semanas", style={"color": "#6C757D"})
                                 ])
                             ], className="shadow-sm border-0"),
                             width=3
                         ),
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
-                                    html.H6(
-                                        "Pico epidemico maximo",
-                                        style={"color": "#0B3C5D"}
-                                    ),
-
-                                    html.H4(
-                                        "2023-2024",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "color": "#1E3A8A"
-                                        }
-                                    ),
-
-                                    html.P(
-                                        "Mas intenso de la serie",
-                                        style={"color": "#6C757D"}
-                                    )
+                                    html.H6("Pico epidemico maximo", style={"color": "#0B3C5D"}),
+                                    html.H4("2023-2024", style={"fontWeight": "bold", "color": "#1E3A8A"}),
+                                    html.P("Mas intenso de la serie", style={"color": "#6C757D"})
                                 ])
                             ], className="shadow-sm border-0"),
                             width=3
                         ),
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
-                                    html.H6(
-                                        "Ciclos epidemicos",
-                                        style={"color": "#0B3C5D"}
-                                    ),
-
-                                    html.H4(
-                                        "~4-5 anos",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "color": "#1E3A8A"
-                                        }
-                                    ),
-
-                                    html.P(
-                                        "2013-14 · 2019-20 · 2023-24",
-                                        style={"color": "#6C757D"}
-                                    )
+                                    html.H6("Ciclos epidemicos", style={"color": "#0B3C5D"}),
+                                    html.H4("~4-5 anos", style={"fontWeight": "bold", "color": "#1E3A8A"}),
+                                    html.P("2013-14 · 2019-20 · 2023-24", style={"color": "#6C757D"})
                                 ])
                             ], className="shadow-sm border-0"),
                             width=3
                         ),
-
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
-                                    html.H6(
-                                        "Estacionariedad (ADF)",
-                                        style={"color": "#0B3C5D"}
-                                    ),
-
-                                    html.H4(
-                                        "No estacionaria",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "color": "#1E3A8A"
-                                        }
-                                    ),
-
-                                    html.P(
-                                        "p-value 0.080 · cercano al umbral",
-                                        style={"color": "#6C757D"}
-                                    )
+                                    html.H6("Estacionariedad (ADF)", style={"color": "#0B3C5D"}),
+                                    html.H4("No estacionaria", style={"fontWeight": "bold", "color": "#1E3A8A"}),
+                                    html.P("p-value 0.080 · cercano al umbral", style={"color": "#6C757D"})
                                 ])
                             ], className="shadow-sm border-0"),
                             width=3
                         )
-
                     ], className="mb-4"),
 
-                    # ======================================================
-                    # SERIE TEMPORAL
-                    # ======================================================
                     html.H5(
                         "Serie temporal de incidencia y covariables ambientales",
-                        style={
-                            "color": "#0B3C5D",
-                            "fontWeight": "bold"
-                        }
+                        style={"color": "#0B3C5D", "fontWeight": "bold"}
                     ),
 
                     dbc.Row([
-
                         dbc.Col([
-
                             html.Label("Selecciona Covariable(s)"),
-
                             dcc.Dropdown(
                                 id="eda-covariable-dropdown",
-                                    options=[
-                                        {"label": "Precipitación", "value": "precipitacion"},
-                                        {"label": "Temperatura Media",      "value": "temp_c"},
-                                        {"label": "Humedad Relativa",       "value": "humedad_relativa"}
-                                    ],
-                                    value=None,
-                                    multi=True,                          # ← esta línea es clave
-                                    placeholder="Selecciona covariables...",
-                                    clearable=True
-                                )
-
+                                options=[
+                                    {"label": "Precipitacion (lag 4)", "value": "precip_lag_4"},
+                                    {"label": "Temperatura Media",      "value": "temp_c"},
+                                    {"label": "Humedad Relativa",       "value": "humedad_relativa"}
+                                ],
+                                value=None,
+                                multi=True,
+                                placeholder="Selecciona covariables...",
+                                clearable=True
+                            )
                         ], width=3),
-
-                        dbc.Col(
+                        dbc.Col([
                             dcc.Graph(id="eda-serie-incidencia-covariable"),
-                            width=9
-                        )
-
+                            html.Div(id="eda-desc-serie", style=DESC_STYLE)
+                        ], width=9)
                     ], className="mb-5"),
 
-                    # ======================================================
-                    # BOXPLOT ANUAL
-                    # ======================================================
                     html.H5(
                         "Distribucion y variabilidad anual de la incidencia",
-                        style={
-                            "color": "#0B3C5D",
-                            "fontWeight": "bold"
-                        }
+                        style={"color": "#0B3C5D", "fontWeight": "bold"}
                     ),
 
                     dbc.Row([
-                        dbc.Col(dcc.Graph(id="eda-box-anual"), width=12)
+                        dbc.Col([
+                            dcc.Graph(id="eda-box-anual"),
+                            html.Div(id="eda-desc-box-anual", style=DESC_STYLE)
+                        ], width=12)
                     ], className="mb-5"),
 
-                    # ======================================================
-                    # HEATMAP
-                    # ======================================================
                     html.H5(
                         "Heatmap de incidencia semanal por ano",
-                        style={
-                            "color": "#0B3C5D",
-                            "fontWeight": "bold"
-                        }
+                        style={"color": "#0B3C5D", "fontWeight": "bold"}
                     ),
 
                     dbc.Row([
-                        dbc.Col(dcc.Graph(id="eda-heatmap"), width=12)
+                        dbc.Col([
+                            dcc.Graph(id="eda-heatmap"),
+                            html.Div(id="eda-desc-heatmap", style=DESC_STYLE)
+                        ], width=12)
                     ], className="mb-5"),
 
-                    # ======================================================
-                    # MAPA + RANKING
-                    # ======================================================
                     html.H5(
                         "Distribucion espacial y ranking nacional",
-                        style={
-                            "color": "#0B3C5D",
-                            "fontWeight": "bold"
-                        }
+                        style={"color": "#0B3C5D", "fontWeight": "bold"}
                     ),
 
                     dbc.Row([
-
-                        dbc.Col(
+                        dbc.Col([
                             dcc.Graph(id="eda-mapa-incidencia"),
-                            width=6
-                        ),
-
-                        dbc.Col(
+                            html.Div(id="eda-desc-mapa", style=DESC_STYLE)
+                        ], width=6),
+                        dbc.Col([
                             dcc.Graph(id="eda-ranking-incidencia"),
-                            width=6
-                        )
-
+                            html.Div(id="eda-desc-ranking", style=DESC_STYLE)
+                        ], width=6)
                     ], className="mb-5")
 
                 ]
@@ -448,6 +346,7 @@ def layout():
 # CALLBACK PRINCIPAL
 # ======================================================
 @callback(
+    # Figuras
     Output("eda-total-casos", "children"),
     Output("eda-incidencia", "children"),
     Output("eda-pie-sexo", "figure"),
@@ -460,6 +359,20 @@ def layout():
     Output("eda-heatmap", "figure"),
     Output("eda-mapa-incidencia", "figure"),
     Output("eda-ranking-incidencia", "figure"),
+    # Descripciones Tab 1
+    Output("eda-desc-sexo", "children"),
+    Output("eda-desc-edad", "children"),
+    Output("eda-desc-zona", "children"),
+    # Descripciones Tab 2
+    Output("eda-desc-hist", "children"),
+    Output("eda-desc-box", "children"),
+    Output("eda-desc-bar-depto", "children"),
+    # Descripciones Tab 3
+    Output("eda-desc-box-anual", "children"),
+    Output("eda-desc-heatmap", "children"),
+    Output("eda-desc-mapa", "children"),
+    Output("eda-desc-ranking", "children"),
+    # Inputs
     Input("eda-year-range", "value"),
     Input("eda-depto-dropdown", "value")
 )
@@ -469,10 +382,8 @@ def update_dashboard(year_range, departamento):
 
     if year_range is not None:
         start_year, end_year = year_range
-
         df_filtered = df_filtered[
-            (df_filtered["ano"] >= start_year)
-            &
+            (df_filtered["ano"] >= start_year) &
             (df_filtered["ano"] <= end_year)
         ]
 
@@ -484,35 +395,27 @@ def update_dashboard(year_range, departamento):
         ]
 
     df_depto = df.copy()
-
     if departamento is not None:
-        df_depto = df_depto[
-            df_depto["departamento"] == departamento
-        ]
+        df_depto = df_depto[df_depto["departamento"] == departamento]
 
     periodo = f"{start_year}-{end_year}"
-
-    if departamento is None:
-        label = periodo
-    else:
-        label = f"{departamento} ({periodo})"
+    label = periodo if departamento is None else f"{departamento} ({periodo})"
 
     # ======================================================
     # METRICAS
     # ======================================================
     total_casos = df_filtered_depto["casos"].sum()
-
     incidencia_acumulada = df_filtered_depto["incidencia"].mean()
 
     # ======================================================
     # SEXO
     # ======================================================
+    total_m = df_filtered_depto["casos_mujeres"].sum()
+    total_h = df_filtered_depto["casos_hombres"].sum()
+
     fig_sexo = px.pie(
         names=["Mujeres", "Hombres"],
-        values=[
-            df_filtered_depto["casos_mujeres"].sum(),
-            df_filtered_depto["casos_hombres"].sum()
-        ],
+        values=[total_m, total_h],
         title=f"Proporcion Casos por Sexo ({label})",
         color_discrete_sequence=PALETA_CATEGORICA,
         template=TEMPLATE
@@ -521,12 +424,12 @@ def update_dashboard(year_range, departamento):
     # ======================================================
     # ZONA
     # ======================================================
+    casos_rural  = df_filtered_depto["casos_rural"].sum()
+    casos_urbano = df_filtered_depto["casos_urbano"].sum()
+
     fig_zona = px.pie(
         names=["Rural", "Urbano"],
-        values=[
-            df_filtered_depto["casos_rural"].sum(),
-            df_filtered_depto["casos_urbano"].sum()
-        ],
+        values=[casos_rural, casos_urbano],
         title=f"Proporcion Casos por Zona ({label})",
         color_discrete_sequence=PALETA_CATEGORICA,
         template=TEMPLATE
@@ -536,7 +439,6 @@ def update_dashboard(year_range, departamento):
     # EDAD
     # ======================================================
     grupos = ["0-4", "5-13", "14-26", "27-59", "60+"]
-
     valores = [
         df_filtered_depto["n_0_4"].sum(),
         df_filtered_depto["n_5_13"].sum(),
@@ -612,13 +514,9 @@ def update_dashboard(year_range, departamento):
     )
 
     # ======================================================
-    # HEATMAP
+    # HEATMAP - sin filtro de ano, siempre serie completa
     # ======================================================
-# ======================================================
-# HEATMAP — sin filtro de año, siempre muestra serie completa
-# ======================================================
-    df_heatmap = df.copy()  # ← usa df original, no df_depto
-
+    df_heatmap = df.copy()
     if departamento is not None:
         df_heatmap = df_heatmap[df_heatmap["departamento"] == departamento]
 
@@ -629,21 +527,17 @@ def update_dashboard(year_range, departamento):
         .reset_index()
     )
 
-    matriz = heatmap_df.pivot(
-        index="ano",
-        columns="semana",
-        values="incidencia"
-    )
+    matriz = heatmap_df.pivot(index="ano", columns="semana", values="incidencia")
 
     fig_heatmap = px.imshow(
         matriz,
         color_continuous_scale=PALETA_CONTINUA,
         aspect="auto",
-        title=f"Estacionalidad semanal (serie completa)"  # ← título actualizado
+        title="Estacionalidad semanal (serie completa 2012-2024)"
     )
 
     # ======================================================
-    # MAPA - FIX: usar to_json() para serializacion segura
+    # MAPA
     # ======================================================
     tabla_global = (
         df_filtered.groupby("departamento")["incidencia"]
@@ -651,7 +545,6 @@ def update_dashboard(year_range, departamento):
         .reset_index()
     )
 
-# DESPUÉS (correcto)
     mapa_plot = _mapa_base[["dpto_cnmbr"]].copy()
     mapa_plot = mapa_plot.merge(
         tabla_global,
@@ -662,7 +555,7 @@ def update_dashboard(year_range, departamento):
     mapa_plot["incidencia"] = mapa_plot["incidencia"].astype(float).fillna(0.0)
 
     fig_mapa = px.choropleth(
-        mapa_plot,           # ← mapa_plot, no mapa
+        mapa_plot,
         geojson=_GEOJSON,
         featureidkey="properties.dpto_cnmbr",
         locations="dpto_cnmbr",
@@ -671,20 +564,13 @@ def update_dashboard(year_range, departamento):
         color_continuous_scale=PALETA_CONTINUA,
         template=TEMPLATE
     )
-
-    fig_mapa.update_geos(
-        fitbounds="locations",
-        visible=False
-    )
+    fig_mapa.update_geos(fitbounds="locations", visible=False)
 
     # ======================================================
     # RANKING
     # ======================================================
     fig_ranking = px.bar(
-        tabla_global
-        .sort_values("incidencia", ascending=False)
-        .head(15),
-
+        tabla_global.sort_values("incidencia", ascending=False).head(15),
         x="incidencia",
         y="departamento",
         orientation="h",
@@ -692,6 +578,96 @@ def update_dashboard(year_range, departamento):
         color="incidencia",
         color_continuous_scale=PALETA_CONTINUA,
         template=TEMPLATE
+    )
+
+    # ======================================================
+    # DESCRIPCIONES DINAMICAS
+    # ======================================================
+
+    # --- Tab 1: Sexo ---
+    pct_m = total_m / (total_m + total_h) * 100 if (total_m + total_h) > 0 else 0
+    sexo_dom = "mujeres" if total_m > total_h else "hombres"
+    desc_sexo = (
+        f"El {pct_m:.1f}% de los casos corresponden a mujeres. "
+        f"Los casos predominan en {sexo_dom}, patron consistente con "
+        f"la mayor exposicion vectorial en actividades del hogar."
+    )
+
+    # --- Tab 1: Edad ---
+    grupo_max = grupos[list(valores).index(max(valores))]
+    desc_edad = (
+        f"El grupo de edad con mayor carga de casos es {grupo_max}. "
+        f"Una concentracion en adultos (14-59) sugiere exposicion laboral o escolar. "
+    )
+
+    # --- Tab 1: Zona ---
+    total_zona = casos_rural + casos_urbano
+    pct_urb = casos_urbano / total_zona * 100 if total_zona > 0 else 0
+    zona_dom = "urbana" if casos_urbano > casos_rural else "rural"
+    desc_zona = (
+        f"El {pct_urb:.1f}% de los casos ocurren en zona urbana. "
+        f"La predominancia {zona_dom} refleja la distribucion del vector "
+        f"Aedes aegypti y la densidad poblacional en el area."
+    )
+
+    # --- Tab 2: Histograma ---
+    inc_media = df_filtered_depto["incidencia"].mean()
+    inc_max   = df_filtered_depto["incidencia"].max()
+    desc_hist = (
+        f"Distribucion de la incidencia semanal por 100.000 habitantes. "
+        f"La incidencia media es {inc_media:.2f} y el maximo registrado es {inc_max:.2f}. "
+        f"Una distribucion con cola larga a la derecha indica la presencia de semanas "
+        f"epidemicas con valores extremos."
+    )
+
+    # --- Tab 2: Boxplot ---
+    inc_q75 = df_filtered_depto["incidencia"].quantile(0.75)
+    inc_med  = df_filtered_depto["incidencia"].median()
+    desc_box = (
+        f"La mediana de incidencia es {inc_med:.2f} casos por 100.000 hab. "
+        f"El 75% de las semanas registran menos de {inc_q75:.2f}. "
+        f"Los puntos fuera de los bigotes representan semanas epidemicas atipicas."
+    )
+
+    # --- Tab 2: Bar departamentos ---
+    depto_top = espacial.iloc[0]["departamento"] if not espacial.empty else "N/A"
+    inc_top   = espacial.iloc[0]["incidencia"]   if not espacial.empty else 0
+    desc_bar_depto = (
+        f"Incidencia media por departamento en el periodo seleccionado. "
+        f"{depto_top} presenta la mayor incidencia promedio ({inc_top:.2f} x100k). "
+        f"Las diferencias entre departamentos reflejan variaciones climaticas, "
+        f"demograficas y de capacidad de vigilancia epidemiologica."
+    )
+
+    # --- Tab 3: Boxplot anual ---
+    ano_max = df_depto.groupby("ano")["incidencia"].mean().idxmax() if not df_depto.empty else "N/A"
+    desc_box_anual = (
+        f"Cada caja resume la variabilidad semanal de incidencia dentro de un ano. "
+        f"El ano {ano_max} presenta la mayor incidencia media del periodo. "
+        f"Cajas mas anchas indican anos con mayor heterogeneidad entre semanas."
+    )
+
+    # --- Tab 3: Heatmap ---
+    desc_heatmap = (
+        "Cada celda muestra la incidencia media para una semana epidemiologica y un ano. "
+        "Los colores mas oscuros indican mayor intensidad de transmision. "
+        "Columnas con colores consistentemente altos revelan semanas de mayor riesgo estacional "
+        "(generalmente semanas 1-15 y 40-52, asociadas a lluvias)."
+    )
+
+    # --- Tab 3: Mapa ---
+    desc_mapa = (
+        f"Mapa coropletico de incidencia media departamental en {periodo}. "
+        f"Los tonos mas oscuros indican mayor carga de enfermedad. "
+        f"Permite identificar los focos geograficos de transmision prioritarios."
+    )
+
+    # --- Tab 3: Ranking ---
+    n_deptos = len(tabla_global)
+    desc_ranking = (
+        f"Top 15 departamentos por incidencia media en {periodo} "
+        f"(de {n_deptos} departamentos con datos). "
+        f"Permite priorizar territorios para intervencion y vigilancia reforzada."
     )
 
     return (
@@ -706,7 +682,20 @@ def update_dashboard(year_range, departamento):
         fig_box_anual,
         fig_heatmap,
         fig_mapa,
-        fig_ranking
+        fig_ranking,
+        # Descripciones Tab 1
+        desc_sexo,
+        desc_edad,
+        desc_zona,
+        # Descripciones Tab 2
+        desc_hist,
+        desc_box,
+        desc_bar_depto,
+        # Descripciones Tab 3
+        desc_box_anual,
+        desc_heatmap,
+        desc_mapa,
+        desc_ranking
     )
 
 
@@ -715,13 +704,14 @@ def update_dashboard(year_range, departamento):
 # ======================================================
 @callback(
     Output("eda-serie-incidencia-covariable", "figure"),
+    Output("eda-desc-serie", "children"),
     Input("eda-covariable-dropdown", "value"),
     Input("eda-year-range", "value"),
     Input("eda-depto-dropdown", "value")
 )
 def update_incidencia_covariable(covariables, year_range, departamento):
 
-    # Normalizar: si viene None o string suelto, convertir a lista
+    # Normalizar input
     if not covariables:
         covariables = []
     elif isinstance(covariables, str):
@@ -729,9 +719,6 @@ def update_incidencia_covariable(covariables, year_range, departamento):
 
     df_filtered = df.copy()
 
-    # ======================================================
-    # FILTROS
-    # ======================================================
     if year_range is not None:
         start_year, end_year = year_range
         df_filtered = df_filtered[
@@ -746,18 +733,12 @@ def update_incidencia_covariable(covariables, year_range, departamento):
 
     df_filtered = df_filtered.sort_values("fecha_inicio")
 
-    # ======================================================
-    # AGREGACION BASE
-    # ======================================================
     df_nal = (
         df_filtered
         .groupby("fecha_inicio", as_index=False)
         .agg({"incidencia": "mean"})
     )
 
-    # ======================================================
-    # AGREGAR COLUMNAS DE COVARIABLES
-    # ======================================================
     for cov in covariables:
         if cov in df_filtered.columns:
             cov_df = (
@@ -768,40 +749,27 @@ def update_incidencia_covariable(covariables, year_range, departamento):
             df_nal = df_nal.merge(cov_df, on="fecha_inicio", how="left")
 
     if df_nal.empty:
-        return go.Figure()
+        return go.Figure(), ""
 
-    # ======================================================
-    # SUAVIZADO
-    # ======================================================
+    # Ventana adaptativa
     n_semanas = len(df_nal)
-    window = min(52, max(4, n_semanas // 4))  # ventana = 25% de los datos, entre 4 y 52
+    window = min(52, max(4, n_semanas // 4))
 
     df_nal["media_movil"] = (
         df_nal["incidencia"]
         .rolling(window=window, center=True, min_periods=1)
         .mean()
     )
-
     df_nal["std"] = (
         df_nal["incidencia"]
         .rolling(window=window, center=True, min_periods=4)
         .std()
     )
-
     df_nal["upper"] = df_nal["media_movil"] + df_nal["std"]
+    df_nal["lower"] = (df_nal["media_movil"] - df_nal["std"]).clip(lower=0)
 
-    df_nal["lower"] = (
-        df_nal["media_movil"] - df_nal["std"]
-    ).clip(lower=0)
+    fig = plotly.subplots.make_subplots(specs=[[{"secondary_y": True}]])
 
-    # ======================================================
-    # FIGURA
-    # ======================================================
-    fig = plotly.subplots.make_subplots(
-        specs=[[{"secondary_y": True}]]
-    )
-
-    # Serie original
     fig.add_trace(
         go.Scatter(
             x=df_nal["fecha_inicio"],
@@ -812,7 +780,6 @@ def update_incidencia_covariable(covariables, year_range, departamento):
         secondary_y=False
     )
 
-    # Tendencia suavizada
     fig.add_trace(
         go.Scatter(
             x=df_nal["fecha_inicio"],
@@ -823,7 +790,6 @@ def update_incidencia_covariable(covariables, year_range, departamento):
         secondary_y=False
     )
 
-    # Banda superior (sin leyenda)
     fig.add_trace(
         go.Scatter(
             x=df_nal["fecha_inicio"],
@@ -834,7 +800,6 @@ def update_incidencia_covariable(covariables, year_range, departamento):
         secondary_y=False
     )
 
-    # Banda inferior con relleno
     fig.add_trace(
         go.Scatter(
             x=df_nal["fecha_inicio"],
@@ -847,9 +812,7 @@ def update_incidencia_covariable(covariables, year_range, departamento):
         secondary_y=False
     )
 
-    # ======================================================
-    # COVARIABLES (una traza por cada una)
-    # ======================================================
+    # Covariables normalizadas (Z-score)
     for i, cov in enumerate(covariables):
         if cov in df_nal.columns:
             df_nal[f"{cov}_smooth"] = (
@@ -865,30 +828,22 @@ def update_incidencia_covariable(covariables, year_range, departamento):
                     name=f"{cov} (norm.)",
                     customdata=df_nal[f"{cov}_smooth"].round(2),
                     hovertemplate="%{customdata}",
-                    line=dict(dash="dash", width=2, color=COLORES_COV[i % len(COLORES_COV)])
+                    line=dict(
+                        dash="dash",
+                        width=2,
+                        color=COLORES_COV[i % len(COLORES_COV)]
+                    )
                 ),
                 secondary_y=True
             )
 
-    if covariables:
-        fig.update_yaxes(title_text="Covariables (Z-score)", secondary_y=True)
-
-    # ======================================================
-    # LAYOUT
-    # ======================================================
     fig.update_layout(
         title="Serie temporal de incidencia y covariables ambientales",
         template=TEMPLATE,
         hovermode="x unified",
         plot_bgcolor="white",
         paper_bgcolor="white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        )
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
 
     fig.update_yaxes(
@@ -898,9 +853,22 @@ def update_incidencia_covariable(covariables, year_range, departamento):
     )
 
     if covariables:
-        fig.update_yaxes(
-            title_text=" / ".join(covariables),
-            secondary_y=True
+        fig.update_yaxes(title_text="Covariables (Z-score)", secondary_y=True)
+
+    # Descripcion dinamica de la serie
+    if covariables:
+        nombres = ", ".join(covariables)
+        desc_serie = (
+            f"Serie semanal de incidencia con tendencia suavizada (ventana={window} semanas) "
+            f"y banda de +/-1 desviacion estandar. "
+            f"Las covariables ({nombres}) se muestran normalizadas (Z-score) en el eje derecho "
+            f"para facilitar la comparacion visual de patrones temporales con la incidencia."
+        )
+    else:
+        desc_serie = (
+            f"Serie semanal de incidencia con tendencia suavizada (ventana={window} semanas) "
+            f"y banda de +/-1 desviacion estandar. "
+            f"Los picos indican semanas epidemicas; la banda muestra la variabilidad tipica del periodo."
         )
 
-    return fig
+    return fig, desc_serie
